@@ -4,6 +4,8 @@ Need a self custodial, embedded wallet that gives TPM security and requires no b
 
 `blobviem` gives you an ETH wallet that is stored inside of a passkey, and can be locked/unlocked during your app!
 
+Support is mostly limited to Safari now, but largeBlob passkeys are in Chrome experimentally, and are gaining popularity.
+
 ## Quick Start
 
 At your `index.js` / top level component, wrap everything in the provider:
