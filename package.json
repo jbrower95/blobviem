@@ -1,0 +1,19 @@
+{
+  "name": "blobviem",
+  "version": "1.0.0",
+  "description": "Self custodial, large-blob passkey accounts in Viem!",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Justin Brower",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "viem": "^1.19.13",
+    "@types/react": "^18.2.0"
+  }
+}
