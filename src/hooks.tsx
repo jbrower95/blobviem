@@ -12,7 +12,7 @@ const PasskeyContext = createContext<TPasskeyContext>({
     login: async () => {},
     register: async () => {},
     logout: () => {},
-    reset: async () => {},
+    generateWallet: async () => {},
     isAvailable: IS_AVAILABLE
 })
 
@@ -82,7 +82,7 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
         setAccount(privateKeyToAccount(privateKey));
     };
 
-    const reset = async () => {
+    const generateWallet = async () => {
         const key = generatePrivateKey();
         setPrivateKeyUsingPasskey(key);
     }
@@ -126,7 +126,7 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
         account,
         login,
         logout,
-        reset,
+        generateWallet,
         register,
         isAvailable: IS_AVAILABLE
     }}>

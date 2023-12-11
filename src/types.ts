@@ -22,7 +22,7 @@ export type TPasskeyContext = {
      * @param id - If you want, you can pass in what you think the ID of the login should be. By default, 
      * we'll call it "profile".
      * 
-     * @returns 
+     * @returns Shows a prompt to the user, and eventually returns void. Check {account} for the viem account after this.
      */
     login: (id?: string) => Promise<void>,
 
@@ -34,13 +34,21 @@ export type TPasskeyContext = {
     /**
      * Allows the user to register a new account with some id.
      * 
-     * This brings up the webauthn "passkey" flow, potentially multiple times.
+     * This brings up the webauthn "passkey" flow.
      * 
-     * @returns 
+     * After invoking `register`, make sure to call `generateWallet`.
+     * 
+     * @returns Shows a prompt to the user, and eventually returns void.
      */
     register: (args: TRegisterArgs) => Promise<void>,
 
-    reset: () => Promise<void>;
+    /**
+     * Generates a private key and associates it with the passkey created from
+     * register().
+     *
+     * @returns Shows a prompt to the user, and eventually returns void. Check {account} for the viem account after this.
+     */
+    generateWallet: () => Promise<void>;
 
     /**
      * whether or not largeBlob passkeys are supported in this browser.
