@@ -8,6 +8,10 @@ Support is mostly limited to Safari now, but largeBlob passkeys are in Chrome ex
 
 ## Quick Start
 
+```bash
+npm install blobviem
+```
+
 At your `index.js` / top level component, wrap everything in the provider:
 ```javascript
     return 
