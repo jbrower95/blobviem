@@ -23,7 +23,7 @@ type TProps = {
     /**
      * Persist the full-account in session storage (kinda sketchy) between page reloads.
      */
-    useSessionStorage: boolean
+    useSessionStorage?: boolean
 }
 
 const clearSessionStorage = () => {
@@ -36,12 +36,16 @@ const Keys = {
     PrivateKey: "_privateKey"
 }
 
+const b64ToBytes = (base64: string) => {
+    const binString = atob(base64);
+    return Uint8Array.from(binString, (m) => m.codePointAt(0)!);
+} 
 
 export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) => {
     const [account, setAccount] = useState<PrivateKeyAccount>();
     const [credentialId, setCredentialId] = useState<ArrayBuffer>();
 
-    const updatePrivateKey = (privateKey: `0x${string}`, credentialId: string) => {
+    const updatePrivateKey = (privateKey: `0x${string}`, credentialId: string, credentialIdRaw: ArrayBuffer) => {
         const account = privateKeyToAccount(privateKey);
 
         window.sessionStorage.setItem(Keys.Address, account.address);
@@ -51,6 +55,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
             window.sessionStorage.setItem(Keys.PrivateKey, privateKey);
         }
         setAccount(account);
+        setCredentialId(credentialIdRaw);
         return account;
     }
     
@@ -61,7 +66,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
 
             // reload the account from session storage if it exists.
             if (privKey && credential) {
-                updatePrivateKey(privKey, credential);
+                updatePrivateKey(privKey, credential, b64ToBytes(credential).buffer);
             }
         }
     }, []);
@@ -126,8 +131,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
             throw new Error("Failed to save account.");
         }
 
-        setCredentialId(credential.rawId);
-        updatePrivateKey(to, credential.id);
+        updatePrivateKey(to, credential.id, credential.rawId);
 
         return credential;
     }
@@ -135,7 +139,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
     const login = async () => {
         const {key, credential} = await fetchPrivateKeyUsingPasskey();
         return {
-            account: updatePrivateKey(key, credential.id),
+            account: updatePrivateKey(key, credential.id, credential.rawId),
             credential
         }
     };
@@ -176,7 +180,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
         const key = generatePrivateKey();
         const credential = await setPrivateKeyUsingPasskey(key);
         return {
-            account: updatePrivateKey(key, credential.id),
+            account: updatePrivateKey(key, credential.id, credential.rawId),
             credential
         }
     }
