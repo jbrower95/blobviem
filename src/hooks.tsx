@@ -1,4 +1,4 @@
-import {createContext, useContext, useState} from "react";
+import {createContext, useContext, useState, useEffect} from "react";
 import { PrivateKeyAccount, bytesToHex, hexToBytes } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts'
 import { TPasskeyContext } from "./types";
@@ -19,21 +19,52 @@ const PasskeyContext = createContext<TPasskeyContext>({
 
 type TProps = {
     children: JSX.Element,
+
+    /**
+     * Persist the full-account in session storage (kinda sketchy) between page reloads.
+     */
     useSessionStorage: boolean
 }
+
+const clearSessionStorage = () => {
+    window.sessionStorage.clear();
+};
+
+const Keys = {
+    Address: "_address",
+    Credential: "_credential",
+    PrivateKey: "_privateKey"
+}
+
 
 export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) => {
     const [account, setAccount] = useState<PrivateKeyAccount>();
     const [credentialId, setCredentialId] = useState<ArrayBuffer>();
 
-    const updatePrivateKey = (privateKey: `0x${string}`) => {
-        if (useSessionStorage) {
-            // update the persisted account.
-        }
+    const updatePrivateKey = (privateKey: `0x${string}`, credentialId: string) => {
         const account = privateKeyToAccount(privateKey);
+
+        window.sessionStorage.setItem(Keys.Address, account.address);
+        window.sessionStorage.setItem(Keys.Credential, credentialId);
+
+        if (useSessionStorage) {
+            window.sessionStorage.setItem(Keys.PrivateKey, privateKey);
+        }
         setAccount(account);
         return account;
     }
+    
+    useEffect(() => {
+        if (useSessionStorage) {
+            const privKey = window.sessionStorage.getItem(Keys.PrivateKey) as `0x${string}`;
+            const credential = window.sessionStorage.getItem(Keys.Credential);
+
+            // reload the account from session storage if it exists.
+            if (privKey && credential) {
+                updatePrivateKey(privKey, credential);
+            }
+        }
+    }, []);
 
     const fetchPrivateKeyUsingPasskey = async (credentialId?: BufferSource) => {
         const credential = await navigator.credentials.get({
@@ -96,7 +127,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
         }
 
         setCredentialId(credential.rawId);
-        updatePrivateKey(to);
+        updatePrivateKey(to, credential.id);
 
         return credential;
     }
@@ -104,7 +135,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
     const login = async () => {
         const {key, credential} = await fetchPrivateKeyUsingPasskey();
         return {
-            account: updatePrivateKey(key),
+            account: updatePrivateKey(key, credential.id),
             credential
         }
     };
@@ -145,13 +176,14 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
         const key = generatePrivateKey();
         const credential = await setPrivateKeyUsingPasskey(key);
         return {
-            account: updatePrivateKey(key),
+            account: updatePrivateKey(key, credential.id),
             credential
         }
     }
 
     const logout = () => {
         setAccount(undefined);
+        clearSessionStorage();
     }
 
     return <PasskeyContext.Provider value={{
