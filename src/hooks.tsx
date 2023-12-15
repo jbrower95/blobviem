@@ -17,9 +17,23 @@ const PasskeyContext = createContext<TPasskeyContext>({
     isAvailable: IS_AVAILABLE
 })
 
-export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
+type TProps = {
+    children: JSX.Element,
+    useSessionStorage: boolean
+}
+
+export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) => {
     const [account, setAccount] = useState<PrivateKeyAccount>();
     const [credentialId, setCredentialId] = useState<ArrayBuffer>();
+
+    const updatePrivateKey = (privateKey: `0x${string}`) => {
+        if (useSessionStorage) {
+            // update the persisted account.
+        }
+        const account = privateKeyToAccount(privateKey);
+        setAccount(account);
+        return account;
+    }
 
     const fetchPrivateKeyUsingPasskey = async (credentialId?: BufferSource) => {
         const credential = await navigator.credentials.get({
@@ -49,7 +63,10 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
             throw new Error("Invalid passkey.")
         }
         setCredentialId(credential.rawId);
-        return bytesToHex(new Uint8Array(credential.getClientExtensionResults().largeBlob!.blob!))
+        return {
+            credential,
+            key: bytesToHex(new Uint8Array(credential.getClientExtensionResults().largeBlob!.blob!))
+        }
     }
 
     const setPrivateKeyUsingPasskey = async (to: `0x${string}`) => {
@@ -79,22 +96,18 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
         }
 
         setCredentialId(credential.rawId);
+        updatePrivateKey(to);
+
+        return credential;
     }
 
     const login = async () => {
-        const privateKey = await fetchPrivateKeyUsingPasskey();
-        const account = privateKeyToAccount(privateKey);
-        setAccount(account);
-        return account;
+        const {key, credential} = await fetchPrivateKeyUsingPasskey();
+        return {
+            account: updatePrivateKey(key),
+            credential
+        }
     };
-
-    const generateWallet = async () => {
-        const key = generatePrivateKey();
-        setPrivateKeyUsingPasskey(key);
-        const account = privateKeyToAccount(key);
-        setAccount(account);
-        return account;
-    }
 
     const register = async ({
         displayName = "anonymous_user",
@@ -125,7 +138,17 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
             },
         }) as PublicKeyCredential;
         setCredentialId(credential.rawId);
+        return credential as PublicKeyCredential;
     };
+
+    const generateWallet = async () => {
+        const key = generatePrivateKey();
+        const credential = await setPrivateKeyUsingPasskey(key);
+        return {
+            account: updatePrivateKey(key),
+            credential
+        }
+    }
 
     const logout = () => {
         setAccount(undefined);
@@ -135,7 +158,7 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
         account,
         login,
         logout,
-        export: credentialId ? (async () => await fetchPrivateKeyUsingPasskey(credentialId)) : undefined,
+        export: credentialId ? (async () => (await fetchPrivateKeyUsingPasskey(credentialId)).key) : undefined,
         generateWallet,
         register,
         isAvailable: IS_AVAILABLE

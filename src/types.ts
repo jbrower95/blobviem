@@ -7,6 +7,11 @@ export type TRegisterArgs = {
     appName: string
 }
 
+export type AccountAndCredential = {
+    credential: PublicKeyCredential,
+    account: PrivateKeyAccount
+}
+
 export type TPasskeyContext = {
     /**
      * The viem account.
@@ -24,7 +29,7 @@ export type TPasskeyContext = {
      * 
      * @returns Shows a prompt to the user, and eventually returns void. Check {account} for the viem account after this.
      */
-    login: (id?: string) => Promise<PrivateKeyAccount>,
+    login: (id?: string) => Promise<AccountAndCredential>,
 
     /**
      * Removes the account from memory, zeroing it out for all users of your app.
@@ -40,7 +45,7 @@ export type TPasskeyContext = {
      * 
      * @returns Shows a prompt to the user, and eventually returns void.
      */
-    register: (args: TRegisterArgs) => Promise<void>,
+    register: (args: TRegisterArgs) => Promise<PublicKeyCredential>,
 
     /**
      * @returns The exported private key. Only available if you're already logged in.
@@ -53,7 +58,7 @@ export type TPasskeyContext = {
      *
      * @returns Shows a prompt to the user, and eventually returns void. Check {account} for the viem account after this.
      */
-    generateWallet: () => Promise<PrivateKeyAccount>,
+    generateWallet: () => Promise<AccountAndCredential>,
 
     /**
      * whether or not largeBlob passkeys are supported in this browser.
