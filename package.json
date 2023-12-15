@@ -1,6 +1,6 @@
 {
   "name": "blobviem",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Self custodial, large-blob passkey accounts in Viem!",
   "main": "dist/index.js",
   "scripts": {},

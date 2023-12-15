@@ -9,10 +9,11 @@ const EMPTY_CHALLENGE = new TextEncoder().encode("challenge").buffer;
 
 const PasskeyContext = createContext<TPasskeyContext>({
     account: undefined,
-    login: async () => {},
-    register: async () => {},
+    login: async () => {throw new Error('Unimplemented.')},
+    export: undefined,
+    register: async () => {throw new Error('Unimplemented.')},
     logout: () => {},
-    generateWallet: async () => {},
+    generateWallet: async () => {throw new Error('Unimplemented')},
     isAvailable: IS_AVAILABLE
 })
 
@@ -20,11 +21,14 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
     const [account, setAccount] = useState<PrivateKeyAccount>();
     const [credentialId, setCredentialId] = useState<ArrayBuffer>();
 
-    const fetchPrivateKeyUsingPasskey = async () => {
+    const fetchPrivateKeyUsingPasskey = async (credentialId?: BufferSource) => {
         const credential = await navigator.credentials.get({
             mediation: 'required',
             publicKey: {
-                allowCredentials: undefined, /* any account */
+                allowCredentials: !credentialId ? undefined : [{
+                    id: credentialId,
+                    type: "public-key"
+                }], /* any account, or `credentialId`'s account if set. */
                 extensions: {
                     largeBlob: {
                         read: true
@@ -79,12 +83,17 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
 
     const login = async () => {
         const privateKey = await fetchPrivateKeyUsingPasskey();
-        setAccount(privateKeyToAccount(privateKey));
+        const account = privateKeyToAccount(privateKey);
+        setAccount(account);
+        return account;
     };
 
     const generateWallet = async () => {
         const key = generatePrivateKey();
         setPrivateKeyUsingPasskey(key);
+        const account = privateKeyToAccount(key);
+        setAccount(account);
+        return account;
     }
 
     const register = async ({
@@ -126,6 +135,7 @@ export const PasskeyContextProvider = ({children}: {children: JSX.Element}) => {
         account,
         login,
         logout,
+        export: credentialId ? (async () => await fetchPrivateKeyUsingPasskey(credentialId)) : undefined,
         generateWallet,
         register,
         isAvailable: IS_AVAILABLE
