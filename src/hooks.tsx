@@ -41,21 +41,25 @@ const b64ToBytes = (base64: string) => {
     return Uint8Array.from(binString, (m) => m.codePointAt(0)!);
 } 
 
+const bytesToBase64 = (bytes: ArrayBuffer) => {
+    return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+}
+
 export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) => {
     const [account, setAccount] = useState<PrivateKeyAccount>();
     const [credentialId, setCredentialId] = useState<ArrayBuffer>();
 
-    const updatePrivateKey = (privateKey: `0x${string}`, credentialId: string, credentialIdRaw: ArrayBuffer) => {
+    const updatePrivateKey = (privateKey: `0x${string}`, cred: string, credRaw: ArrayBuffer) => {
         const account = privateKeyToAccount(privateKey);
 
         window.sessionStorage.setItem(Keys.Address, account.address);
-        window.sessionStorage.setItem(Keys.Credential, credentialId);
+        window.sessionStorage.setItem(Keys.Credential, bytesToBase64(credRaw));
 
         if (useSessionStorage) {
             window.sessionStorage.setItem(Keys.PrivateKey, privateKey);
         }
         setAccount(account);
-        setCredentialId(credentialIdRaw);
+        setCredentialId(credRaw);
         return account;
     }
     
@@ -138,6 +142,7 @@ export const PasskeyContextProvider = ({children, useSessionStorage}: TProps) =>
 
     const login = async () => {
         const {key, credential} = await fetchPrivateKeyUsingPasskey();
+        console.log(credential);
         return {
             account: updatePrivateKey(key, credential.id, credential.rawId),
             credential
