@@ -6,6 +6,19 @@ Need a self custodial, embedded wallet that gives TPM security and requires no b
 
 Support is mostly limited to Safari now, but largeBlob passkeys are in Chrome experimentally, and are gaining popularity.
 
+## Changelog
+
+1.10.0:
+- Introduced `sessionType` of `passkey` or `session`. (see Quick Start)
+    - `passkey` session: will prompt the user upon all signatures. Does not store the
+    private key in browser storage, only in-memory during signatures.
+
+    - `session` session: stores the key in sessionStorage, and does not prompt for
+    future signatures.
+
+    NOTE: Both session types persist data in localStorage, and will require your user to log back in if localStorage is cleared.
+
+
 ## Quick Start
 
 ```bash
@@ -15,14 +28,16 @@ npm install blobviem
 At your `index.js` / top level component, wrap everything in the provider:
 ```javascript
     return 
-        <PasskeyContextProvider>
+        <PasskeyContextProvider sessionType='passkey'>
             <App />
         </PasskeyContextProvider>
 ```
 
+Next,
+
 In your component, just `usePasskey()` 
 ```javascript
-    const {account, login, register, generateWallet} = usePasskey();
+    const {account, login, logout, register, generateWallet} = usePasskey();
 
     return <>
         <h1>{account?.address}</h1> {/* if you're logged in, `account` is a viem account. */}
