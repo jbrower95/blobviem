@@ -1,4 +1,4 @@
-import { PrivateKeyAccount } from "viem"
+import { LocalAccount, PrivateKeyAccount } from "viem"
 
 export type TRegisterArgs = {
     displayName?: string,
@@ -9,14 +9,15 @@ export type TRegisterArgs = {
 
 export type AccountAndCredential = {
     credential: PublicKeyCredential,
-    account: PrivateKeyAccount
+    account: PrivateKeyAccount | LocalAccount
+    sessionId: string
 }
 
 export type TPasskeyContext = {
     /**
      * The viem account.
      */
-    account?: PrivateKeyAccount, 
+    account?: PrivateKeyAccount | LocalAccount, 
 
     /**
      * Allows the user to select from any existing profiles
