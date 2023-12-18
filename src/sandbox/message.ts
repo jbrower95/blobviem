@@ -1,13 +1,5 @@
 import { TransactionSerializable } from "viem";
-
-/**
- * hot:
- *  - future signatures do not require a passkey prompt. (only an 'ok')
- * prompt:
- *  - key is never held session storage, only in memory. 
- *   if you delete a passkey, you may lose your session.
- */
-export type SessionType = "hot" | "prompt";
+import { TOptions } from '../webauthn';
 
 export type BaseResponse = {
     success: boolean
@@ -55,9 +47,8 @@ export type SessionGet = {
  * - If a session currently exists, this logs it out.
  */
 export type Register = {
-    Request: {
+    Request: TOptions & {
         type: 'register'
-        sessionType: SessionType
     },
     Response: BaseResponse & CredentialsResponse & {}
 }
@@ -68,9 +59,8 @@ export type Register = {
  * - If a session currently exists, this logs it out.
  */
 export type Login = {
-    Request: {
+    Request: TOptions & {
         type: 'login'
-        sessionType: SessionType
         requestedCredentialId?: string
     }
     Response: BaseResponse & CredentialsResponse & {}

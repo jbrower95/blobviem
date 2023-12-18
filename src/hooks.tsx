@@ -35,10 +35,10 @@ export const PasskeyContextProvider = (opts: TProps) => {
     const login = async () => {
         const {credential, account, sessionId} = await Login(opts);
         setCredentialId(credential.rawId);
-        setAccount(account);
+        setAccount(account!);
 
         return {
-            account,
+            account: account!,
             credential,
             sessionId
         }
@@ -53,7 +53,8 @@ export const PasskeyContextProvider = (opts: TProps) => {
     const generateWallet = async () => {
         const res = await GenerateWallet(opts, {credentialId: credentialId!})
         setAccount(res.account);
-        return res;
+        const account = res.account!;
+        return {...res, account};
     }
 
     const logout = () => {

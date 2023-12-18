@@ -1,29 +1,19 @@
 import { ExportKey, Login, Logout, Register, SessionGet, SignTransaction } from "./message";
 import { Session } from '../webauthn';
-
-const isValidSession = (session: Session) => {
-    return (
-        !!session.sessionId &&
-        !!session.credentialId && 
-        !!session.address &&
-        !!session.expires &&
-        new Date() < new Date(session.expires)
-    )
-}
-
-const sha256: (message: string) => Promise<string> = async (message) => {
-    const msgUint8 = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    return hashHex;
-}
+import * as Webauthn from '../webauthn';
+import {sha256, isValidSession} from './utils';
 
 const clearSessionForDomain = async (domain: string) => {
     const storeVal = await sha256(domain);
     window.localStorage.removeItem(storeVal);
+}
+
+const assertSession = async (domain: string) => {
+    const session = getSessionForDomain(domain);
+    if (!session) {
+        throw new Error('not logged in.');
+    }
+    return session;
 }
 
 const getSessionForDomain = async (domain: string) => {
@@ -59,21 +49,53 @@ export const SessionGetHandler: (from: string, input: SessionGet['Request']) => 
 
 export const LoginHandler: (from: string, input: Login['Request']) => Promise<Login['Response']> = async (from, input) => {
     await clearSessionForDomain(from);
-    throw new Error('Unimplemented.')
+
+    const res = await Webauthn.Login({sessionType: input.sessionType})
+
+    return {
+        success: true,
+        sessionId: res.sessionId,
+        credentialId: res.credential.id,
+        address: res.account!.address
+    }
 }
 
-export const LogoutHandler: (from: string, input: Logout['Request']) => Promise<Logout['Response']> = (from, input) => {
-    throw new Error("Unimplemented.");
+export const LogoutHandler: (from: string, input: Logout['Request']) => Promise<Logout['Response']> = async (from, input) => {
+    await clearSessionForDomain(from);
+    await Webauthn.Logout()
+
+    return {
+        success: true
+    }
 }
 
-export const RegisterHandler: (from: string, input: Register['Request']) => Promise<Register['Response']> = (from, input) => {
-    throw new Error("Unimplemented.");
+export const RegisterHandler: (from: string, input: Register['Request']) => Promise<Register['Response']> = async (from, input) => {
+    await clearSessionForDomain(from);
+
+    const res = await Webauthn.Register({
+        appName: 'Wallet',
+        displayName: from,
+        name: from, /* the display name will be the domain used. */
+        id: new TextEncoder().encode(from)
+    })
+
+    // TODO: this needs to actually be a stateful web app. we can't do this all in one call
+    const final = await Webauthn.GenerateWallet(input, {credentialId: res.credential.rawId})
+
+    return {
+        success: true,
+        sessionId: final.sessionId,
+        credentialId: final.credential.id,
+        address: final.account!.address
+    }
 }
 
 export const SignHandler: (from: string, input: SignTransaction['Request']) => Promise<SignTransaction['Response']> = (from, input) => {
-    throw new Error("Unimplemented.");
+    const session = assertSession(from);
+    throw new Error('not implemented.');
 }
 
 export const ExportKeyHandler: (from: string, input: ExportKey['Request']) => Promise<ExportKey['Response']> = (from, input) => {
-    throw new Error("Unimplemented.");
+    const session = assertSession(from);
+    throw new Error('not implemented.');
 }

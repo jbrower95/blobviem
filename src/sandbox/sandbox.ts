@@ -38,7 +38,7 @@ const handleRequest = async (data: BaseRequest, reply: (val: any) => Promise<voi
                 case "export":
                     return handle(data as ExportKey['Request'], ExportKeyHandler);
                 default: 
-                    throw new Error("Unknown message.");
+                    throw new Error("unknown message.");
             }
         }
 

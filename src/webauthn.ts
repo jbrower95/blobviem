@@ -1,5 +1,5 @@
 
-import { LocalAccount, PrivateKeyAccount, bytesToHex, hexToBytes } from "viem";
+import { bytesToHex, hexToBytes } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { b64ToBytes, bytesToBase64 } from "./utils";
 import {AllAccounts, AlwaysRefetchPasskeyAccount} from './account';
@@ -54,20 +54,21 @@ export type TOptions = {
     sessionTimeoutMs?: number
 }
 
-const clearSessionStorage = () => {
+const clearStorage = () => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
 };
 
-const UpdatePrivateKey = (options: TOptions, privateKey: `0x${string}`, credRaw: ArrayBuffer) => {
+const BeginSession = (options: TOptions, privateKey: `0x${string}`, credRaw: ArrayBuffer) => {
     const account = privateKeyToAccount(privateKey);
     window.sessionStorage.clear();
 
     let sessionId = uuidv4();
 
-    window.sessionStorage.setItem(Keys.Address, account.address);
-    window.sessionStorage.setItem(Keys.Credential, bytesToBase64(credRaw));
-    window.sessionStorage.setItem(Keys.Expires, `${Date.now() + THREE_HOURS_MS}`)
-    window.sessionStorage.setItem(Keys.Session, sessionId)
+    window.localStorage.setItem(Keys.Address, account.address);
+    window.localStorage.setItem(Keys.Credential, bytesToBase64(credRaw));
+    window.localStorage.setItem(Keys.Expires, `${Date.now() + THREE_HOURS_MS}`)
+    window.localStorage.setItem(Keys.Session, sessionId)
 
     // if we're using session, this is needed.
     if (options.sessionType === 'session') {
@@ -77,51 +78,64 @@ const UpdatePrivateKey = (options: TOptions, privateKey: `0x${string}`, credRaw:
     return sessionId;
 }
 
-export const Initialize: (options: TOptions) => Session | null = (options: TOptions) => {
+export const loadSessionStorageSession = () => {
     const privKey = window.sessionStorage.getItem(Keys.PrivateKey) as `0x${string}`;
-    const address = window.sessionStorage.getItem(Keys.Address) as `0x${string}`;
-    const expires = window.sessionStorage.getItem(Keys.Expires);
-    const credentialId = window.sessionStorage.getItem(Keys.Credential);
-    const sessionId = window.sessionStorage.getItem(Keys.Session);
+    const credentialId = window.localStorage.getItem(Keys.Credential);
+    const expires = window.localStorage.getItem(Keys.Expires);
+    const address = window.localStorage.getItem(Keys.Address) as `0x${string}`;
+    const sessionId = window.localStorage.getItem(Keys.Session);
 
+    if (privKey && credentialId && expires && sessionId) {
+        return {
+            account: privateKeyToAccount(privKey),
+            address,
+            expires: parseInt(expires!),
+            credentialId,
+            sessionId
+        } as Session;
+    }
+
+    return null;
+}
+
+export const loadPasskeySession = (options: TOptions) => {
+    const address = window.localStorage.getItem(Keys.Address) as `0x${string}`;
+    const expires = window.localStorage.getItem(Keys.Expires);
+    const credentialId = window.localStorage.getItem(Keys.Credential);
+    const sessionId = window.localStorage.getItem(Keys.Session);
+
+    if (credentialId && address && expires && sessionId) {
+        window.sessionStorage.removeItem(Keys.PrivateKey); // clear `privkey` if it was previously set.
+
+        const account = AlwaysRefetchPasskeyAccount({
+            address: address,
+            credentialId: b64ToBytes(credentialId)
+        });
+        
+        return {
+            account,
+            address,
+            expires: parseInt(expires!),
+            credentialId,
+            sessionId
+        } as Session
+    }
+
+    return null;
+}
+
+export const Initialize: (options: TOptions) => Session | null = (options: TOptions) => {
     if (options.sessionType === 'session') {
-        // reload the account from session storage if it exists.
-        if (privKey && credentialId && expires && sessionId) {
-            const account = accountForOptions({
-                options,
-                privateKeyAccount: privateKeyToAccount(privKey),
-                credentialId: b64ToBytes(credentialId)
-            })
-            return {
-                account,
-                address,
-                expires: parseInt(expires!),
-                credentialId,
-                sessionId
-            } as Session;
-        }
+        return loadSessionStorageSession();
     } else if (options.sessionType === 'passkey') {
-        if (credentialId && address && expires && sessionId) {
-            const account = accountForOptions({
-                options,
-                privateKeyAccount: privateKeyToAccount(privKey),
-                credentialId: b64ToBytes(credentialId)
-            })
-            return {
-                account,
-                address,
-                expires: parseInt(expires!),
-                credentialId,
-                sessionId
-            } as Session
-        }
+        return loadPasskeySession(options);
     }
 
     return null;
 };
 
 export const Logout = () => {
-    clearSessionStorage();
+    clearStorage();
 }
 
 export const FetchPrivateKeyUsingPasskey = async ({credentialId}: {credentialId?: BufferSource}) => {
@@ -188,25 +202,10 @@ export const StorePrivateKey = async ({credentialId, privateKey}: {credentialId:
     return credential;
 }
 
-const accountForOptions: ({options, privateKeyAccount, credentialId}: {options: TOptions, privateKeyAccount: PrivateKeyAccount, credentialId: BufferSource}) => LocalAccount | PrivateKeyAccount = ({options, privateKeyAccount, credentialId}) => {
-    switch (options.sessionType) {
-        case 'passkey':
-            return AlwaysRefetchPasskeyAccount({
-                address: privateKeyAccount.address,
-                credentialId
-            });
-        case 'session':
-            return privateKeyAccount
-        default:
-            throw new Error(`unknown session type '${options.sessionType}'`)
-    }
-}
-
 export const Login = async (options: TOptions) => {
-    const {key, credential, privateKeyAccount} = await FetchPrivateKeyUsingPasskey({});
-    console.log(credential);
-    const sessionId = UpdatePrivateKey(options, key, credential.rawId);
-    let account = await accountForOptions({options, privateKeyAccount, credentialId: credential.rawId})
+    const {key, credential} = await FetchPrivateKeyUsingPasskey({});
+    const sessionId = BeginSession(options, key, credential.rawId);
+    let {account} = await Initialize(options)!
     
     return {
         key,
@@ -249,11 +248,10 @@ export const Register = async ({
 
 export const GenerateWallet = async (options: TOptions, {credentialId}: {credentialId: BufferSource}) => {
     const key = generatePrivateKey();
-    const privateKeyAccount = privateKeyToAccount(key);
     const credential = await StorePrivateKey({credentialId, privateKey: key});
-    const sessionId = UpdatePrivateKey(options, key, credential.rawId);
+    const sessionId = BeginSession(options, key, credential.rawId);
 
-    let account = accountForOptions({options, privateKeyAccount, credentialId: credential.rawId})
+    let {account} = await Initialize(options)!
     
     return {
         credential,
