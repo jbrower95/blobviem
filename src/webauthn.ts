@@ -84,8 +84,6 @@ export const Initialize: (options: TOptions) => Session | null = (options: TOpti
     const credentialId = window.sessionStorage.getItem(Keys.Credential);
     const sessionId = window.sessionStorage.getItem(Keys.Session);
 
-    debugger;
-
     if (options.sessionType === 'session') {
         // reload the account from session storage if it exists.
         if (privKey && credentialId && expires && sessionId) {
