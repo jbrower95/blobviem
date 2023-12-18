@@ -15,10 +15,21 @@ npm install blobviem
 At your `index.js` / top level component, wrap everything in the provider:
 ```javascript
     return 
-        <PasskeyContextProvider>
+        <PasskeyContextProvider sessionType='passkey'>
             <App />
         </PasskeyContextProvider>
 ```
+
+- `passkey` session: will prompt the user upon all signatures. Does not store the
+private key in browser storage, only in-memory during signatures.
+
+- `session` session: stores the key in sessionStorage, and does not prompt for
+future signatures.
+
+NOTE: Both session types persist data in localStorage, and will require your user to log back in if localStorage is cleared.
+
+
+Next,
 
 In your component, just `usePasskey()` 
 ```javascript
