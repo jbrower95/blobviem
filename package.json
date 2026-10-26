@@ -3,20 +3,44 @@
   "version": "1.1.1",
   "description": "Self custodial, large-blob passkey accounts in Viem!",
   "main": "dist/index.js",
-  "scripts": {},
+  "scripts": {
+    "build:solana": "tsc -p tsconfig.solana.json",
+    "test:solana": "npm run build:solana && node --test test/solana.test.cjs",
+    "build": "tsc --outDir dist --declaration",
+    "prepare": "npm run build"
+  },
   "files": [
     "dist"
   ],
   "author": "Justin Brower",
   "license": "MIT",
   "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@scure/base": "^1.2.6",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.3.3",
-    "uuid": "^9.0.1"
+    "uuid": "^11.1.1"
   },
   "peerDependencies": {
-    "@types/react": "^18.2.0",
-    "react": "^18.2.0",
+    "@types/react": "^18.2.0 || ^19.0.0",
+    "react": "^18.2.0 || ^19.0.0",
     "viem": "^2.9.28"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.31",
+    "react": "^18.3.1",
+    "typescript": "^5.9.3",
+    "viem": "^2.57.11"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@types/react": {
+      "optional": true
+    },
+    "viem": {
+      "optional": true
+    }
   }
 }

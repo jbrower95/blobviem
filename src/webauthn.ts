@@ -187,7 +187,7 @@ export const StorePrivateKey = async ({credentialId, privateKey}: {credentialId:
               }], /* any account */
             extensions: {
                 largeBlob: {
-                    write: hexToBytes(privateKey)
+                    write: Uint8Array.from(hexToBytes(privateKey)).buffer
                 },
             },
             challenge: EMPTY_CHALLENGE, /* we do not care about the challenge */
