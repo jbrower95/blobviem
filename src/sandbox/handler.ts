@@ -76,7 +76,7 @@ export const RegisterHandler: (from: string, input: Register['Request']) => Prom
         appName: 'Wallet',
         displayName: from,
         name: from, /* the display name will be the domain used. */
-        id: new TextEncoder().encode(from)
+        id: new TextEncoder().encode(from).buffer
     })
 
     // TODO: this needs to actually be a stateful web app. we can't do this all in one call

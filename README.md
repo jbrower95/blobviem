@@ -101,3 +101,46 @@ you really have to perform a runtime credential request to tell authoritatively.
     - You cannot show two sequential passkey interactions without two explicit userInteractions.
 
 - *Data loss*: If you call `generateWallet` on an existing wallet (i.e sometime after your registration), you will lose the wallet. **Only call this one time per wallet, ever**.
+## Solana entry point
+
+`blobviem/dist/solana.js` adds an independent Ed25519 largeBlob wallet. It does
+not import React or viem, and does not change the existing Ethereum account API.
+Build with `npm run build`; run `npm run test:solana` for the new core tests.
+
+An application must authenticate the X account with OAuth, generate fresh random
+WebAuthn challenges on its server, verify registration/assertion signatures with
+the expected origin and RP ID, and bind the credential/public Solana address to
+that verified stable X user ID. A browser-supplied X ID is not authentication.
+The `rpId` is your own app domain, never `x.com`.
+
+1. On a user gesture, call `registerSolanaPasskey({xUserId, options})` using
+   server-provided creation options. Verify the returned credential on the server.
+2. On a second gesture, call `initializeSolanaWallet(enrollment, requestOptions)`.
+   It writes a random 32-byte Solana seed once. Verify its sanitized assertion and
+   a Solana wallet signature before committing the server-side account binding.
+3. Call `signSolanaMessage(binding, messageBytes, requestOptions)` to sign exact
+   transaction-message or authentication bytes. Attach the returned signature to
+   the transaction using your Solana SDK. Review transaction details in app first.
+4. `recoverSolanaWallet` reads an existing credential without changing its seed.
+   It returns a public address and sanitized assertion, not a private key.
+
+The new entry point requires user verification, rejects short challenges and
+mismatched RP/account/address bindings, prevents replaying wallet initialization,
+and never writes private keys to localStorage/sessionStorage. Only the fresh
+in-memory enrollment object may initialize a wallet; cancelled writes retry the
+same seed. Missing blob data fails instead of silently creating a replacement.
+Authenticator assertions returned from reads strip all client extensions so the
+largeBlob secret is never accidentally serialized to the application backend.
+
+This is passkey-protected key storage, not hardware-native Solana signing: the
+seed is read into JavaScript briefly to sign. Buffers are cleared where possible;
+JavaScript garbage collection does not guarantee erasure of all intermediate
+copies. The application origin and scripts remain trusted. Do not promise that
+largeBlob data syncs with a passkey or that X login can recover a missing seed.
+Offer an explicit recovery-key flow and external-wallet fallback before accepting
+funds. Runtime extension support and real-device recovery must be tested; unit
+tests use a credential port to test core behavior and do not prove browser or
+physical authenticator compatibility.
+
+The older Ethereum/sandbox API retains its historical behavior. CalledIt should
+use the new Solana entry point exclusively, with server-side WebAuthn verification.

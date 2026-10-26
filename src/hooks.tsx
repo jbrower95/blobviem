@@ -28,7 +28,7 @@ export const PasskeyContextProvider = (opts: TProps) => {
         const session = Initialize(opts);
         if (session) {
             setAccount(session.account);
-            setCredentialId(b64ToBytes(session.credentialId));
+            setCredentialId(b64ToBytes(session.credentialId).buffer);
         }
     }, []);
 
