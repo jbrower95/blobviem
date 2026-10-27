@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { ed25519 } = require("@noble/curves/ed25519");
-const { base58, base64url } = require("@scure/base");
+const { base58, base64urlnopad } = require("@scure/base");
 const {
   registerSolanaPasskey,
   initializeSolanaWallet,
@@ -16,7 +16,7 @@ const options = () => ({
 });
 function authenticator() {
   const rawId = crypto.getRandomValues(new Uint8Array(16));
-  const id = base64url.encode(rawId);
+  const id = base64urlnopad.encode(rawId);
   let stored = null,
     writes = 0,
     failNext = false;
@@ -90,6 +90,8 @@ test("Solana seed is stored once, signs real Ed25519 bytes, and never appears in
     a.port,
   );
   assert.equal(a.writes, 1);
+  assert.equal(binding.credentialId.length, 22);
+  assert.ok(!binding.credentialId.includes("="));
   const message = new TextEncoder().encode("calledit authentication challenge");
   const result = await signSolanaMessage(binding, message, options(), a.port);
   assert.ok(

@@ -1,6 +1,6 @@
 /** Solana largeBlob wallet. The application must verify WebAuthn on its server. */
 import { ed25519 } from "@noble/curves/ed25519";
-import { base58, base64url } from "@scure/base";
+import { base58, base64urlnopad } from "@scure/base";
 
 type LargeBlobOutput = {
   supported?: boolean;
@@ -43,7 +43,7 @@ type Pending = {
 const enrollments = new WeakMap<Enrollment, Pending>();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
-const b64 = (value: ArrayBuffer) => base64url.encode(new Uint8Array(value));
+const b64 = (value: ArrayBuffer) => base64urlnopad.encode(new Uint8Array(value));
 function bytes(value: BufferSource): Uint8Array {
   return value instanceof ArrayBuffer
     ? new Uint8Array(value)
@@ -99,7 +99,7 @@ function boundRequest(
     userVerification: "required" as const,
     allowCredentials: [
       {
-        id: Uint8Array.from(base64url.decode(binding.credentialId)).buffer,
+        id: Uint8Array.from(base64urlnopad.decode(binding.credentialId)).buffer,
         type: "public-key" as const,
       },
     ],
@@ -171,7 +171,7 @@ export async function initializeSolanaWallet(
       version: 1,
       chain: "solana",
       xUserId: enrollment.xUserId,
-      seed: base64url.encode(pending.seed),
+      seed: base64urlnopad.encode(pending.seed),
     }),
   );
   const request = boundRequest(enrollment, options);
@@ -249,7 +249,7 @@ async function readSeed(
       typeof payload.seed !== "string"
     )
       throw new Error("Wallet is not bound to this X account.");
-    seed = base64url.decode(payload.seed);
+    seed = base64urlnopad.decode(payload.seed.replace(/=+$/, ""));
     if (seed.byteLength !== 32) throw new Error("Invalid Solana seed.");
     return { seed, assertion: assertion(credential) };
   } catch (error) {
